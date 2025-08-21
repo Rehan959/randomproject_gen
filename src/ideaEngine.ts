@@ -1,4 +1,4 @@
-export type Difficulty = 'Beginner' | 'Intermediate' | 'Advanced'
+export type Difficulty = 'Beginner' | 'Intermediate' | 'Advanced' | 'Creative'
 
 export type Idea = {
   title: string
@@ -33,6 +33,21 @@ const beginnerGenerators: IdeaGenerator[] = [
       `Create a notes app with markdown support and search. Save notes to localStorage in ${language}.`,
     tags: ['markdown', 'search', 'localStorage'],
   }),
+  (language) => ({
+    title: `${language} Stopwatch & Timer`,
+    description: `Build a digital stopwatch and timer app with start, pause, reset, and lap features in ${language}.`,
+    tags: ['time', 'UI', 'state'],
+  }),
+  (language) => ({
+    title: `${language} Weather App`,
+    description: `Fetch current weather from a public API and display temperature, humidity, and conditions in ${language}.`,
+    tags: ['API', 'fetch', 'UI'],
+  }),
+  (language) => ({
+    title: `${language} Quiz Game`,
+    description: `Develop a quiz game with multiple-choice questions, score tracking, and randomization in ${language}.`,
+    tags: ['game', 'random', 'logic'],
+  }),
 ]
 
 const intermediateGenerators: IdeaGenerator[] = [
@@ -59,6 +74,21 @@ const intermediateGenerators: IdeaGenerator[] = [
     description:
       `Design a chat interface with message threads, typing indicators, and optimistic updates using a mocked service.`,
     tags: ['optimistic-ui', 'websockets-mock', 'design'],
+  }),
+  (language) => ({
+    title: `${language} Blogging Platform`,
+    description: `Create a small blogging app where users can create, update, delete posts and add comments. Store in local DB or mock API.`,
+    tags: ['CRUD', 'auth', 'editor'],
+  }),
+  (language) => ({
+    title: `${language} Expense Tracker`,
+    description: `Build an app to log expenses, categorize them, and visualize using charts in ${language}.`,
+    tags: ['charts', 'state', 'CRUD'],
+  }),
+  (language) => ({
+    title: `${language} Multiplayer Tic-Tac-Toe`,
+    description: `Implement a 2-player tic-tac-toe game with socket-based real-time play and win/draw detection.`,
+    tags: ['game', 'websocket', 'logic'],
   }),
 ]
 
@@ -87,12 +117,67 @@ const advancedGenerators: IdeaGenerator[] = [
       `Design an issue tracker with authentication, roles, comments, and attachments. Provide REST or GraphQL API.`,
     tags: ['auth', 'full-stack', 'graphql/rest'],
   }),
+  (language) => ({
+    title: `${language} AI Chatbot Assistant`,
+    description: `Develop a chatbot interface backed by an AI model API (or rule-based fallback). Include conversation history and context persistence.`,
+    tags: ['AI', 'NLP', 'API'],
+  }),
+  (language) => ({
+    title: `${language} Online Learning Platform`,
+    description: `Build an LMS with courses, progress tracking, quiz support, and video embedding. Include user authentication.`,
+    tags: ['auth', 'video', 'full-stack'],
+  }),
+  (language) => ({
+    title: `${language} Social Media Feed`,
+    description: `Create a social media clone with posts, likes, comments, and real-time updates (e.g., notifications, new post feed).`,
+    tags: ['real-time', 'auth', 'infinite-scroll'],
+  }),
+]
+
+const creativeGenerators: IdeaGenerator[] = [
+  (language) => ({
+    title: `${language} Generative Art Canvas`,
+    description:
+      `Use ${language} to create generative art patterns (fractals, particle systems, procedural landscapes). Export art as images.`,
+    tags: ['graphics', 'creative-coding', 'math'],
+  }),
+  (language) => ({
+    title: `${language} Music Visualizer`,
+    description:
+      `Build an app that listens to audio input and generates real-time visualizations in ${language}.`,
+    tags: ['audio', 'visualization', 'creative-coding'],
+  }),
+  (language) => ({
+    title: `${language} Meme Generator`,
+    description:
+      `Create a meme-making tool where users can upload images, add text overlays, and export. Bonus: random meme API integration.`,
+    tags: ['canvas', 'image-editing', 'fun'],
+  }),
+  (language) => ({
+    title: `${language} IoT Simulator`,
+    description:
+      `Mock an IoT setup in ${language} with simulated sensors (temperature, humidity) and a dashboard showing live data.`,
+    tags: ['IoT', 'simulation', 'real-time'],
+  }),
+  (language) => ({
+    title: `${language} Virtual Pet Game`,
+    description:
+      `Build a Tamagotchi-style virtual pet that requires feeding, playing, and evolves over time.`,
+    tags: ['game', 'state', 'time-based'],
+  }),
+  (language) => ({
+    title: `${language} Code Poetry Generator`,
+    description:
+      `Write a program in ${language} that generates random poetic verses using word banks and simple grammar rules.`,
+    tags: ['NLP', 'random', 'creative'],
+  }),
 ]
 
 const byDifficulty: Record<Difficulty, IdeaGenerator[]> = {
   Beginner: beginnerGenerators,
   Intermediate: intermediateGenerators,
   Advanced: advancedGenerators,
+  Creative: creativeGenerators,
 }
 
 function getRandomInt(maxExclusive: number): number {
@@ -108,7 +193,6 @@ export function generateIdeas(
   const results: Idea[] = []
   const usedTitles = new Set<string>()
 
-  // Ensure at least one pass through all templates, then random if more needed
   const sequence: IdeaGenerator[] = [...pool]
   while (sequence.length < count) {
     sequence.push(pool[getRandomInt(pool.length)])
@@ -118,7 +202,6 @@ export function generateIdeas(
     const generator = sequence[i % sequence.length]
     const idea = generator(language)
     if (usedTitles.has(idea.title)) {
-      // Slightly perturb duplicate titles
       idea.title = `${idea.title} (${i + 1})`
     }
     usedTitles.add(idea.title)
@@ -141,5 +224,3 @@ export const languages: string[] = [
   'PHP',
   'Ruby',
 ]
-
-

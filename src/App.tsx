@@ -1,21 +1,31 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import './App.css'
 import { generateIdeas, languages, type Difficulty, type Idea } from './ideaEngine'
 
 function App() {
   const [selectedLanguage, setSelectedLanguage] = useState<string>('JavaScript')
-  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('Intermediate')
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | 'Mixed'>('Intermediate')
   const [currentIdea, setCurrentIdea] = useState<Idea | null>(null)
 
-  const canGenerate = useMemo(() => !!selectedLanguage && !!selectedDifficulty, [
-    selectedLanguage,
-    selectedDifficulty,
-  ])
+  const canGenerate = useMemo(
+    () => !!selectedLanguage && !!selectedDifficulty,
+    [selectedLanguage, selectedDifficulty],
+  )
+
+  const intervalRef = useRef<number | null>(null)  // store interval ID
 
   function handleGenerate() {
     if (!canGenerate) return
-    const [idea] = generateIdeas(selectedLanguage, selectedDifficulty, 1)
-    setCurrentIdea(idea)
+
+    if (selectedDifficulty === 'Mixed') {
+      const difficulties: Difficulty[] = ['Beginner', 'Intermediate', 'Advanced', 'Creative']
+      const randomDiff = difficulties[Math.floor(Math.random() * difficulties.length)]
+      const [idea] = generateIdeas(selectedLanguage, randomDiff, 1)
+      setCurrentIdea(idea)
+    } else {
+      const [idea] = generateIdeas(selectedLanguage, selectedDifficulty as Difficulty, 1)
+      setCurrentIdea(idea)
+    }
   }
 
   function handleCopy(idea: Idea) {
@@ -31,15 +41,40 @@ function App() {
           e.target.tagName === 'SELECT' ||
           e.target.tagName === 'TEXTAREA' ||
           e.target.getAttribute('contenteditable') === 'true')
+
       if (isTypingElement) return
 
-      if (e.code === 'Space' || e.key === ' ') {
+      if ((e.code === 'Space' || e.key === ' ') && intervalRef.current === null) {
         e.preventDefault()
         handleGenerate()
+        // Start generating continuously every 500ms while Space is held down
+        intervalRef.current = window.setInterval(() => {
+          handleGenerate()
+        }, 500)
       }
     }
+
+    function onKeyUp(e: KeyboardEvent) {
+      if (e.code === 'Space' || e.key === ' ') {
+        // Stop continuous generation when Space is released
+        if (intervalRef.current !== null) {
+          clearInterval(intervalRef.current)
+          intervalRef.current = null
+        }
+      }
+    }
+
     window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+      if (intervalRef.current !== null) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
   }, [selectedLanguage, selectedDifficulty, canGenerate])
 
   return (
@@ -70,16 +105,26 @@ function App() {
               <select
                 id="difficulty"
                 value={selectedDifficulty}
-                onChange={(e) => setSelectedDifficulty(e.target.value as Difficulty)}
+                onChange={(e) =>
+                  setSelectedDifficulty(e.target.value as Difficulty | 'Mixed')
+                }
               >
                 <option value="Beginner">Beginner</option>
                 <option value="Intermediate">Intermediate</option>
                 <option value="Advanced">Advanced</option>
+                <option value="Creative">Creative</option>
+                <option value="Mixed">Mixed</option>
               </select>
             </div>
           </div>
 
-          <section className="generator hero-generator" onClick={handleGenerate} role="button" aria-label="Random generator" tabIndex={0}>
+          <section
+            className="generator hero-generator"
+            onClick={handleGenerate}
+            role="button"
+            aria-label="Random generator"
+            tabIndex={0}
+          >
             {!currentIdea && (
               <div className="generator-inner">
                 <div className="hint">Press Space to generate</div>
@@ -97,7 +142,14 @@ function App() {
                   ))}
                 </div>
                 <div className="generator-actions">
-                  <button onClick={(e) => { e.stopPropagation(); handleCopy(currentIdea) }}>Copy</button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleCopy(currentIdea)
+                    }}
+                  >
+                    Copy
+                  </button>
                 </div>
               </div>
             )}
