@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import './App.css'
 import { generateIdeas, languages, type Difficulty, type Idea } from './ideaEngine'
 
@@ -7,23 +7,35 @@ function App() {
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | 'Mixed'>('Intermediate')
   const [currentIdea, setCurrentIdea] = useState<Idea | null>(null)
 
-  const canGenerate = useMemo(
-    () => !!selectedLanguage && !!selectedDifficulty,
-    [selectedLanguage, selectedDifficulty],
-  )
+  // useRef to keep track of latest state values to avoid stale closures in event listener
+  const selectedLanguageRef = useRef(selectedLanguage)
+  const selectedDifficultyRef = useRef(selectedDifficulty)
+  const canGenerateRef = useRef<boolean>(true)
 
-  const intervalRef = useRef<number | null>(null)  // store interval ID
+  // Update refs on state change
+  useEffect(() => {
+    selectedLanguageRef.current = selectedLanguage
+  }, [selectedLanguage])
+  useEffect(() => {
+    selectedDifficultyRef.current = selectedDifficulty
+  }, [selectedDifficulty])
+  useEffect(() => {
+    canGenerateRef.current = !!selectedLanguageRef.current && !!selectedDifficultyRef.current
+  }, [selectedLanguage, selectedDifficulty])
 
   function handleGenerate() {
-    if (!canGenerate) return
+    if (!canGenerateRef.current) return
 
-    if (selectedDifficulty === 'Mixed') {
+    const lang = selectedLanguageRef.current
+    const diff = selectedDifficultyRef.current
+
+    if (diff === 'Mixed') {
       const difficulties: Difficulty[] = ['Beginner', 'Intermediate', 'Advanced', 'Creative']
       const randomDiff = difficulties[Math.floor(Math.random() * difficulties.length)]
-      const [idea] = generateIdeas(selectedLanguage, randomDiff, 1)
+      const [idea] = generateIdeas(lang, randomDiff, 1)
       setCurrentIdea(idea)
     } else {
-      const [idea] = generateIdeas(selectedLanguage, selectedDifficulty as Difficulty, 1)
+      const [idea] = generateIdeas(lang, diff as Difficulty, 1)
       setCurrentIdea(idea)
     }
   }
@@ -44,45 +56,62 @@ function App() {
 
       if (isTypingElement) return
 
-      if ((e.code === 'Space' || e.key === ' ') && intervalRef.current === null) {
+      if (e.code === 'Space' || e.key === ' ') {
         e.preventDefault()
         handleGenerate()
-        // Start generating continuously every 500ms while Space is held down
-        intervalRef.current = window.setInterval(() => {
-          handleGenerate()
-        }, 500)
       }
     }
 
-    function onKeyUp(e: KeyboardEvent) {
-      if (e.code === 'Space' || e.key === ' ') {
-        // Stop continuous generation when Space is released
-        if (intervalRef.current !== null) {
-          clearInterval(intervalRef.current)
-          intervalRef.current = null
-        }
-      }
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('keydown', onKeyDown, { passive: false })
 
     return () => {
       window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('keyup', onKeyUp)
-      if (intervalRef.current !== null) {
-        clearInterval(intervalRef.current)
-        intervalRef.current = null
-      }
     }
-  }, [selectedLanguage, selectedDifficulty, canGenerate])
+  }, [])
 
   return (
     <div className="container">
       <section className="hero">
         <div className="hero-inner">
           <h1 className="hero-title">Project Idea Generator</h1>
-          <p className="hero-subtitle">Pick your language and level, then press Space to get a tailored idea.</p>
+          <p className="hero-subtitle">
+            Pick your language and level, then press <span className="highlight">Space</span> to get a new idea instantly.
+          </p>
+
+          <section
+            className="generator hero-generator"
+            onClick={handleGenerate}
+            role="button"
+            aria-label="Random generator"
+            tabIndex={0}
+          >
+            {!currentIdea && (
+              <div className="generator-inner">
+                <div className="hint">Press Space to generate</div>
+              </div>
+            )}
+            {currentIdea && (
+              <div className="generator-inner">
+                <h2 className="generator-title">{currentIdea.title}</h2>
+                <p className="generator-desc">{currentIdea.description}</p>
+                <div className="tags">
+                  {currentIdea.tags.map((t) => (
+                    <span key={t} className="tag">{t}</span>
+                  ))}
+                </div>
+                <div className="generator-actions">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleCopy(currentIdea)
+                    }}
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
 
           <div className="controls hero-controls">
             <div className="control-group">
@@ -93,9 +122,7 @@ function App() {
                 onChange={(e) => setSelectedLanguage(e.target.value)}
               >
                 {languages.map((lang) => (
-                  <option key={lang} value={lang}>
-                    {lang}
-                  </option>
+                  <option key={lang} value={lang}>{lang}</option>
                 ))}
               </select>
             </div>
@@ -118,44 +145,7 @@ function App() {
             </div>
           </div>
 
-          <section
-            className="generator hero-generator"
-            onClick={handleGenerate}
-            role="button"
-            aria-label="Random generator"
-            tabIndex={0}
-          >
-            {!currentIdea && (
-              <div className="generator-inner">
-                <div className="hint">Press Space to generate</div>
-              </div>
-            )}
-            {currentIdea && (
-              <div className="generator-inner">
-                <h2 className="generator-title">{currentIdea.title}</h2>
-                <p className="generator-desc">{currentIdea.description}</p>
-                <div className="tags">
-                  {currentIdea.tags.map((t) => (
-                    <span key={t} className="tag">
-                      {t}
-                    </span>
-                  ))}
-                </div>
-                <div className="generator-actions">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleCopy(currentIdea)
-                    }}
-                  >
-                    Copy
-                  </button>
-                </div>
-              </div>
-            )}
-          </section>
-
-          <div className="hint-key">Tip: press Spacebar or click the area above</div>
+          <div className="hint-key">Tip: Press Spacebar anytime for a new idea 🎉</div>
         </div>
       </section>
     </div>

@@ -136,11 +136,10 @@ input[type="number"] {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 38vh;
+  min-height: 60vh;
   border: 2px dashed #3a3a3a;
   border-radius: 16px;
   cursor: pointer;
-  user-select: none;
   transition: border-color 0.2s ease;
 }
 .generator:hover {
